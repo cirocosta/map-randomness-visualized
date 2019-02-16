@@ -1,13 +1,17 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"math/rand"
+	"sort"
 
 	"github.com/fatih/color"
 )
 
 var (
-	shades = []*color.Color{
+	shouldShuffle = flag.Bool("shuffle", false, "whether we should manually shuffle or not")
+	shades        = []*color.Color{
 		color.New(color.FgBlack),
 		color.New(color.FgRed),
 		color.New(color.FgGreen),
@@ -25,7 +29,7 @@ var (
 		color.New(color.FgHiCyan),
 		color.New(color.FgHiWhite),
 	}
-	rowSize = len(shades)
+	rowSize = 2
 	rootMap = map[int]interface{}{}
 )
 
@@ -57,17 +61,46 @@ func createRow() []int {
 	return row
 }
 
+func shuffle(v sort.Interface) {
+	for i := v.Len() - 1; i > 0; i-- {
+		v.Swap(i, rand.Intn(i+1))
+	}
+}
+
+func createShuffledRow() []int {
+	baseRow := []int{}
+	for k := range rootMap {
+		baseRow = append(baseRow, k)
+	}
+
+	shuffled := make([]int, len(baseRow))
+	copy(shuffled, baseRow)
+	shuffle(sort.IntSlice(shuffled))
+
+	return shuffled
+}
+
 func init() {
 	for i := 0; i < rowSize; i++ {
 		rootMap[i] = nil
 	}
 }
 
+var rowCreator func() []int
+
 func main() {
+	flag.Parse()
+
+	if *shouldShuffle {
+		rowCreator = createShuffledRow
+	} else {
+		rowCreator = createRow
+	}
+
 	matrix := [][]int{}
 
 	for i := 0; i < 100; i++ {
-		matrix = append(matrix, createRow())
+		matrix = append(matrix, rowCreator())
 	}
 
 	printMatrix(matrix)
